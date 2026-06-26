@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Performans Analitiği</title>
+    <style>
+        body {
+            background-color: #09070f;
+            color: #e2e8f0;
+            font-family: system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+        .consent-box {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(18, 14, 30, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+        }
+        h3 { color: #fff; margin-bottom: 12px; font-size: 18px; }
+        p { font-size: 13px; color: #94a3b8; line-height: 1.6; }
+        .status { margin-top: 15px; font-size: 14px; font-weight: bold; color: #a78bfa; }
+    </style>
+</head>
+<body>
+
+    <div class="consent-box">
+        <h3>Sistem Kontrol Paneli</h3>
+        <p>Anlık sistem güncellemelerini ve veri akış bildirimlerini almak için tarayıcı iznini onaylamanız gerekmektedir.</p>
+        <div id="izinDurumu" class="status">Bildirim bağlantısı kuruluyor...</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDHBtEJGI89L5IRBjsynL0X1CNcd4phcSY",
+            authDomain: "webbug-66fbb.firebaseapp.com",
+            projectId: "webbug-66fbb",
+            storageBucket: "webbug-66fbb.firebasestorage.app",
+            messagingSenderId: "554787868100",
+            appId: "1:554787868100:web:fa13a4a9dade85c6c4a891"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const izinDurumu = document.getElementById('izinDurumu');
+
+        if ("Notification" in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    izinDurumu.textContent = "Bağlantı aktif. Bildirimler bekleniyor...";
+                    izinDurumu.style.color = "#10b981";
+
+                    // Veritabanını canlı olarak dinleme katmanı
+                    onValue(ref(db, 'canli_bildirim'), (snapshot) => {
+                        const data = snapshot.val();
+                        if (data && data.baslik) {
+                            // Standart tarayıcı kurallarına göre tekil pop-up gösterimi
+                            new Notification(data.baslik, {
+                                body: data.icerik,
+                                tag: "firebase-notif-" + data.zamanDamgasi, // Mükerrer bildirim yönetim etiketi
+                                requireInteraction: false
+                            });
+                        }
+                    });
+                } else {
+                    izinDurumu.textContent = "Bildirim izni reddedildi.";
+                    izinDurumu.style.color = "#ef4444";
+                }
+            });
+        } else {
+            izinDurumu.textContent = "Tarayıcınız bildirim özelliğini desteklemiyor.";
+            izinDurumu.style.color = "#ef4444";
+        }
+    </script>
+</body>
+</html>

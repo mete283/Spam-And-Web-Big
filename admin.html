@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yönetim Bildirim Paneli</title>
+    <style>
+        body {
+            background-color: #0d0b14;
+            color: #cbd5e1;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .admin-box {
+            background: rgba(15, 11, 26, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            padding: 30px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        h3 { color: #a78bfa; margin-top: 0; text-align: center; }
+        input, textarea, button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            background-color: #161224;
+            color: #fff;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #8b5cf6;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: #7c3aed; }
+    </style>
+</head>
+<body>
+
+    <div class="admin-box">
+        <h3>Canlı Bildirim Gönderimi</h3>
+        <input type="text" id="msgTitle" placeholder="Bildirim Başlığı">
+        <textarea id="msgBody" rows="4" placeholder="Bildirim İçeriği"></textarea>
+        <button id="yayinlaBtn">Bildirimi Gönder</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDHBtEJGI89L5IRBjsynL0X1CNcd4phcSY",
+            authDomain: "webbug-66fbb.firebaseapp.com",
+            projectId: "webbug-66fbb",
+            storageBucket: "webbug-66fbb.firebasestorage.app",
+            messagingSenderId: "554787868100",
+            appId: "1:554787868100:web:fa13a4a9dade85c6c4a891"
+        };
+
+        // Firebase Başlatma
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        document.getElementById('yayinlaBtn').addEventListener('click', () => {
+            const title = document.getElementById('msgTitle').value.trim();
+            const body = document.getElementById('msgBody').value.trim();
+
+            if (!title || !body) {
+                alert("Lütfen başlık ve içerik alanlarını doldurun.");
+                return;
+            }
+
+            // Realtime Database üzerine veriyi kaydetme
+            set(ref(db, 'canli_bildirim'), {
+                baslik: title,
+                icerik: body,
+                zamanDamgasi: Date.now()
+            }).then(() => {
+                alert("Bildirim veritabanına iletildi.");
+                document.getElementById('msgTitle').value = "";
+                document.getElementById('msgBody').value = "";
+            }).catch(err => {
+                console.error("Firebase Hatası:", err);
+                alert("Veri gönderilemedi. Veritabanı kurallarınızı kontrol edin.");
+            });
+        });
+    </script>
+</body>
+</html>
