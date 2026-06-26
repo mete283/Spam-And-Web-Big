@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Test Paneli</title>
+    <style>
+        /* Genel Sayfa Tasarımı */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.5s ease;
+        }
+
+        /* Onay Kutusu Konteyneri */
+        .container {
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            transition: opacity 0.5s ease;
+        }
+
+        h3 { color: #ff3b30; margin-top: 0; }
+        p { color: #aaaaaa; font-size: 14px; line-height: 1.5; }
+
+        .checkbox-container {
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        /* Başlat Butonu */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #ff3b30;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:disabled {
+            background-color: #3a3a3c;
+            color: #8e8e93;
+            cursor: not-allowed;
+        }
+
+        /* Gizlilik Sınıfı (Siyah Ekran İçin) */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="panel">
+    <h3>DİKKAT: Sistem Testi</h3>
+    <p>Bu sistem, tarayıcınızın bildirim performansını ölçmek amacıyla sürekli olarak sahte test mesajları (spam) gönderecektir.</p>
+    
+    <label class="checkbox-container">
+        <input type="checkbox" id="confirmCheck">
+        <span>Okudum, onaylıyorum.</span>
+    </label>
+    
+    <button id="startBtn" class="btn" disabled>Sistemi Başlat</button>
+</div>
+
+<script>
+    const confirmCheck = document.getElementById('confirmCheck');
+    const startBtn = document.getElementById('startBtn');
+    const panel = document.getElementById('panel');
+
+    // Sahte bildirimlerde dönecek rastgele metin havuzu
+    const fakeMessages = [
+        "Yeni bir sistem uyarısı mevcut!",
+        "Bellek optimizasyonu gerekiyor.",
+        "Bağlantı isteği algılandı.",
+        "Kritik test döngüsü tetiklendi.",
+        "Kullanıcı verisi senkronize ediliyor..."
+    ];
+
+    // Checkbox işaretlendiğinde butonu aktif et
+    confirmCheck.addEventListener('change', function() {
+        startBtn.disabled = !this.checked;
+    });
+
+    // Butona tıklandığında çalışacak ana fonksiyon
+    startBtn.addEventListener('click', function() {
+        if (!("Notification" in window)) {
+            alert("Bu tarayıcı bildirim desteğine sahip değil.");
+            return;
+        }
+
+        // Tarayıcıdan bildirim izni iste
+        Notification.requestPermission().then(function(permission) {
+            if (permission === "granted") {
+                
+                // 1. Arayüzü Değiştir: Paneli gizle ve ekranı tamamen siyaha bürü
+                panel.classList.add('hidden');
+                document.body.style.backgroundColor = "#000000";
+
+                // 2. Sürekli Sahte Mesaj Gönderme Döngüsünü Başlat (Her 500 milisaniyede bir)
+                setInterval(function() {
+                    // Mesaj havuzundan rastgele bir metin seç
+                    const randomText = fakeMessages[Math.floor(Math.random() * fakeMessages.length)];
+                    
+                    // Bildirimi oluştur ve ekrana fırlat
+                    new Notification("Sistem Test Modu", {
+                        body: randomText,
+                        icon: "https://via.placeholder.com/128/ff3b30/ffffff?text=!", // Geçici kırmızı ikon
+                        silent: false // Sesli/titreşimli uyarı tetiklemesi için
+                    });
+                }, 500); // 500ms = Saniyede 2 bildirim dener
+
+            } else {
+                alert("Sistemin çalışması için bildirim izni vermeniz şarttır.");
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
