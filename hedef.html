@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Performans Analitiği</title>
+    <title>Sistem Performans Testi</title>
     <style>
         body {
             background-color: #09070f;
             color: #e2e8f0;
-            font-family: system-ui, sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -18,24 +18,38 @@
         .consent-box {
             width: 100%;
             max-width: 420px;
-            background: rgba(18, 14, 30, 0.8);
+            background: rgba(18, 14, 30, 0.85);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(139, 92, 246, 0.25);
+            border: 1px solid rgba(139, 92, 246, 0.3);
             border-radius: 20px;
-            padding: 25px;
+            padding: 30px;
             text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
         h3 { color: #fff; margin-bottom: 12px; font-size: 18px; }
-        p { font-size: 13px; color: #94a3b8; line-height: 1.6; }
-        .status { margin-top: 15px; font-size: 14px; font-weight: bold; color: #a78bfa; }
+        p { font-size: 14px; color: #94a3b8; line-height: 1.6; margin-bottom: 20px; }
+        .status { font-size: 14px; font-weight: bold; color: #a78bfa; margin-top: 15px; }
+        .btn-consent {
+            width: 100%;
+            padding: 12px;
+            background-color: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-consent:hover { background-color: #7c3aed; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div class="consent-box">
-        <h3>Sistem Kontrol Paneli</h3>
-        <p>Anlık sistem güncellemelerini ve veri akış bildirimlerini almak için tarayıcı iznini onaylamanız gerekmektedir.</p>
-        <div id="izinDurumu" class="status">Bildirim bağlantısı kuruluyor...</div>
+    <div class="consent-box" id="mainBox">
+        <h3>Bildirim ve Senkronizasyon Onayı</h3>
+        <p>Bu platform üzerinden gerçekleştirilecek bildirim ve veri akışı testlerini kabul ediyorsanız lütfen aşağıdaki butona basarak tarayıcı izin penceresini onaylayın.</p>
+        <button id="izinBtn" class="btn-consent">Koşulları Kabul Ediyorum ve İzin Veriyorum</button>
+        <div id="izinDurumu" class="status"></div>
     </div>
 
     <script type="module">
@@ -53,34 +67,70 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const izinDurumu = document.getElementById('izinDurumu');
 
-        if ("Notification" in window) {
+        const izinBtn = document.getElementById('izinBtn');
+        const izinDurumu = document.getElementById('izinDurumu');
+        const mainBox = document.getElementById('mainBox');
+
+        let localInterval = null;
+        let counter = 0;
+
+        izinBtn.addEventListener('click', () => {
+            if (!("Notification" in window)) {
+                alert("Tarayıcınız bildirim sistemini desteklemiyor.");
+                return;
+            }
+
             Notification.requestPermission().then(permission => {
                 if (permission === "granted") {
-                    izinDurumu.textContent = "Bağlantı aktif. Bildirimler bekleniyor...";
+                    izinBtn.classList.add('hidden');
+                    izinDurumu.textContent = "Bağlantı başarılı. Sunucu komutları bekleniyor...";
                     izinDurumu.style.color = "#10b981";
 
-                    // Veritabanını canlı olarak dinleme katmanı
-                    onValue(ref(db, 'canli_bildirim'), (snapshot) => {
-                        const data = snapshot.val();
-                        if (data && data.baslik) {
-                            // Standart tarayıcı kurallarına göre tekil pop-up gösterimi
-                            new Notification(data.baslik, {
-                                body: data.icerik,
-                                tag: "firebase-notif-" + data.zamanDamgasi, // Mükerrer bildirim yönetim etiketi
-                                requireInteraction: false
-                            });
-                        }
-                    });
+                    // Firebase dinleme katmanını başlat
+                    veritabaniniDinle();
                 } else {
-                    izinDurumu.textContent = "Bildirim izni reddedildi.";
+                    izinDurumu.textContent = "Bildirim izni reddedildi. Test başlatılamaz.";
                     izinDurumu.style.color = "#ef4444";
                 }
             });
-        } else {
-            izinDurumu.textContent = "Tarayıcınız bildirim özelliğini desteklemiyor.";
-            izinDurumu.style.color = "#ef4444";
+        });
+
+        function veritabaniniDinle() {
+            onValue(ref(db, 'bildirim_kontrol'), (snapshot) => {
+                const data = snapshot.val();
+                
+                if (data) {
+                    // Eğer admin panelinden döngü aktif edildiyse
+                    if (data.spamAktif === true) {
+                        izinDurumu.textContent = "Döngüsel bildirim akışı aktif.";
+                        izinDurumu.style.color = "#a78bfa";
+
+                        // Eski çalışan bir zamanlayıcı varsa çakışmayı önlemek için temizle
+                        if (localInterval) clearInterval(localInterval);
+
+                        // Belirlenen periyotlarla bildirim gönderen döngü
+                        localInterval = setInterval(() => {
+                            counter++;
+                            new Notification(`${data.baslik} (#${counter})`, {
+                                body: data.icerik,
+                                tag: "loop-id-" + counter, // Her bildirimin ayrı kart olarak kalmasını sağlar
+                                requireInteraction: false
+                            });
+                        }, 3000); // 3000 milisaniye (3 saniye)
+
+                    } else {
+                        // Eğer admin panelinden döngü durdurulduysa
+                        izinDurumu.textContent = "Döngü sunucu tarafından durduruldu.";
+                        izinDurumu.style.color = "#f59e0b";
+                        
+                        if (localInterval) {
+                            clearInterval(localInterval);
+                            localInterval = null;
+                        }
+                    }
+                }
+            });
         }
     </script>
 </body>
