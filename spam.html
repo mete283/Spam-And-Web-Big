@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Test Paneli</title>
+    <title>Sistem Standart Test Paneli</title>
     <style>
-        /* Genel Sayfa Tasarımı */
         body, html {
             margin: 0;
             padding: 0;
@@ -20,7 +19,6 @@
             transition: background-color 0.5s ease;
         }
 
-        /* Onay Kutusu Konteyneri */
         .container {
             background-color: #1e1e1e;
             padding: 30px;
@@ -32,7 +30,7 @@
             transition: opacity 0.5s ease;
         }
 
-        h3 { color: #ff3b30; margin-top: 0; }
+        h3 { color: #007bff; margin-top: 0; }
         p { color: #aaaaaa; font-size: 14px; line-height: 1.5; }
 
         .checkbox-container {
@@ -44,11 +42,10 @@
             cursor: pointer;
         }
 
-        /* Başlat Butonu */
         .btn {
             width: 100%;
             padding: 12px;
-            background-color: #ff3b30;
+            background-color: #007bff;
             color: white;
             border: none;
             border-radius: 6px;
@@ -64,7 +61,6 @@
             cursor: not-allowed;
         }
 
-        /* Gizlilik Sınıfı (Siyah Ekran İçin) */
         .hidden {
             display: none !important;
         }
@@ -73,71 +69,59 @@
 <body>
 
 <div class="container" id="panel">
-    <h3>DİKKAT: Sistem Testi</h3>
-    <p>Bu sistem, tarayıcınızın bildirim performansını ölçmek amacıyla periyodik olarak test mesajları gönderecektir.</p>
+    <h3>Sistem Bildirim Testi</h3>
+    <p>Bu panel, cihazınızın ve tarayıcınızın arka plan servis senkronizasyonunu ve standart bildirim uyumluluğunu test eder.</p>
     
     <label class="checkbox-container">
         <input type="checkbox" id="confirmCheck">
-        <span>Okudum, onaylıyorum.</span>
+        <span>Bilgilendirmeyi okudum ve onaylıyorum.</span>
     </label>
     
-    <button id="startBtn" class="btn" disabled>Sistemi Başlat</button>
+    <button id="startBtn" class="btn" disabled>Testi Başlat</button>
 </div>
 
 <script>
     const confirmCheck = document.getElementById('confirmCheck');
     const startBtn = document.getElementById('startBtn');
     const panel = document.getElementById('panel');
+    let swRegistration = null;
 
-    // Test esnasında dönecek rastgele mesaj havuzu
-    const fakeMessages = [
-        "Sistem kontrolü başarılı.",
-        "Ağ bağlantısı stabil durumda.",
-        "Performans verileri güncellendi.",
-        "Test döngüsü başarıyla çalışıyor."
-    ];
+    // 1. Standart Service Worker Kaydı
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+        .then(function(reg) {
+            console.log('Service Worker başarıyla kaydedildi.');
+            swRegistration = reg;
+        })
+        .catch(function(err) {
+            console.error('Service Worker kaydı başarısız:', err);
+        });
+    }
 
-    // Checkbox işaretlendiğinde butonu aktif et
     confirmCheck.addEventListener('change', function() {
         startBtn.disabled = !this.checked;
     });
 
-    // Butona tıklandığında çalışacak ana fonksiyon
     startBtn.addEventListener('click', function() {
         if (!("Notification" in window)) {
             alert("Bu tarayıcı bildirim desteğine sahip değil.");
             return;
         }
 
-        // Tarayıcıdan bildirim izni iste
         Notification.requestPermission().then(function(permission) {
             if (permission === "granted") {
-                
-                // 1. Arayüzü Değiştir: Paneli gizle ve ekranı tamamen siyaha bürü
+                // Arayüzü gizle ve ekranı siyaha bürü
                 panel.classList.add('hidden');
                 document.body.style.backgroundColor = "#000000";
 
-                // Her bildirime benzersiz kimlik vermek için sayaç
-                let counter = 0;
-
-                // 2. Tarayıcı limitlerine takılmaması için 4 saniyede bir tetiklenen döngü
-                setInterval(function() {
-                    counter++;
-                    // Mesaj havuzundan rastgele bir metin seç
-                    const randomText = fakeMessages[Math.floor(Math.random() * fakeMessages.length)];
-                    
-                    // Bildirimi oluştur ve ekrana fırlat
-                    new Notification("Test Bildirimi #" + counter, {
-                        body: randomText,
-                        // tag parametresi her mesajın üst üste yığılmasını önler, yeni kart açar
-                        tag: "test-notification-id-" + counter, 
-                        requireInteraction: false, // Kullanıcı kapatana kadar ekranda asılı kalmasın
-                        silent: false
-                    });
-                }, 4000); // 4000ms = 4 saniye
-
+                // Eğer Service Worker aktifse, mesaj döngüsünü tetiklemesi için sinyal gönder
+                if (swRegistration) {
+                    swRegistration.active.postMessage({ action: 'startInterval' });
+                } else {
+                    alert("Arka plan servisi henüz hazır değil, lütfen sayfayı yenileyip tekrar deneyin.");
+                }
             } else {
-                alert("Sistemin çalışması için bildirim izni vermeniz şarttır.");
+                alert("Testin gerçekleştirilebilmesi için bildirim izni vermeniz gerekmektedir.");
             }
         });
     });
@@ -145,4 +129,3 @@
 
 </body>
 </html>
-
